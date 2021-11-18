@@ -17,7 +17,7 @@ using Pkg
 Pkg.add.(["CSV", "DataFrames", "PyCall"])
 ```
 <br>
-**Python installation**: The `PyCall` Julia library should install Python for you. To find out where this is installed, run:
+**Python installation:** The `PyCall` Julia library should install Python for you. To find out where this is installed, run:
 
 ```julia
 using PyCall
