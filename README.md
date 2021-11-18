@@ -57,6 +57,14 @@ pd = pyimport("pandas")
 dill = pyimport("dill")
 LSTM = pyimport("nowcast_lstm.LSTM").LSTM
 
+# note, any arguments which take Python objects or functions, like criterion, fill_ragged_edges, etc.
+# just import the required Python library and pass, like so
+np = pyimport("numpy")
+LSTM(..., fill_ragged_edges=np.nanmean)
+torch = pyimport("torch")
+LSTM(..., optimizer=torch.optim.Adam)
+LSTM(..., criterion=torch.nn.MSELoss())
+
 model = LSTM(JuliaToPandas(data), "target_col_name", n_timesteps=12) # default parameters with 12 timestep history
 
 model.X # array of the transformed training dataset
@@ -98,7 +106,7 @@ trained_model = dill.load(open("trained_model.pkl", "rb", -1))
 - `dropout`: `float` of the proportion of layers to drop in between LSTM layers. Discussed [here](https://machinelearningmastery.com/dropout-for-regularizing-deep-neural-networks/).
 - `criterion`: `PyTorch loss function`. Discussed [here](https://machinelearningmastery.com/loss-and-loss-functions-for-training-deep-learning-neural-networks/), list of available options in PyTorch [here](https://pytorch.org/docs/stable/nn.html#loss-functions).
 - `optimizer`: `PyTorch optimizer`. Discussed [here](https://towardsdatascience.com/optimizers-for-training-neural-network-59450d71caf6), list of available options in PyTorch [here](https://pytorch.org/docs/stable/optim.html). E.g. `torch.optim.SGD`.
-- `optimizer_parameters`: `dictionary`. Parameters for a particular optimizer, including learning rate. Information [here](https://pytorch.org/docs/stable/optim.html). For instance, to change learning rate (default 1e-2), pass `{"lr":1e-2}`, or weight_decay for L2 regularization, pass `{"lr":1e-2, "weight_decay":1e-3}`. Learning rate discussed [here](https://machinelearningmastery.com/understand-the-dynamics-of-learning-rate-on-deep-learning-neural-networks/).
+- `optimizer_parameters`: `dictionary`. Parameters for a particular optimizer, including learning rate. Information [here](https://pytorch.org/docs/stable/optim.html). For instance, to change learning rate (default 1e-2), pass `Dict("lr" => 1e-2)`, or weight_decay for L2 regularization, pass `Dict("lr" => 1e-2, "weight_decay" => 1e-3)`. Learning rate discussed [here](https://machinelearningmastery.com/understand-the-dynamics-of-learning-rate-on-deep-learning-neural-networks/).
 
 ## LSTM outputs
 Assuming a model has been instantiated and trained with `model = LSTM(...)`:
