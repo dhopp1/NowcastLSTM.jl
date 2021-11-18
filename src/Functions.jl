@@ -1,4 +1,4 @@
-using CSV, DataFrames, PyCall
+using CSV, DataFrames, Dates, PyCall
 
 export JuliaToPandas
 export PandasToJulia
@@ -7,7 +7,7 @@ pd = pyimport("pandas")
 
 "convert a Julia DataFrame to a Pandas DataFrame"
 function JuliaToPandas(df::DataFrame)
-    date_col_name = (eltype.(eachcol(df)) .|> string .== "Dates.Date") |> x-> names(df)[x] |> x-> x[1]
+    date_col_name = (eltype.(eachcol(df)) .|> string .== "Date") |> x-> names(df)[x] |> x-> x[1]
     CSV.write("tmp.csv", df)
     pd_df = pd.read_csv("tmp.csv", parse_dates=[date_col_name])
     run(`rm tmp.csv`)
