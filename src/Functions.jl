@@ -3,10 +3,10 @@ using CSV, DataFrames, Dates, PyCall
 export JuliaToPandas
 export PandasToJulia
 
-pd = pyimport("pandas")
-
 "convert a Julia DataFrame to a Pandas DataFrame"
 function JuliaToPandas(df::DataFrame)
+    pd = pyimport("pandas")
+
     date_col_name = (eltype.(eachcol(df)) .|> string .== "Date") |> x-> names(df)[x] |> x-> x[1]
     CSV.write("tmp.csv", df)
     pd_df = pd.read_csv("tmp.csv", parse_dates=[date_col_name])
