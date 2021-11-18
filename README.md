@@ -73,7 +73,7 @@ model.predict(model.data) |> PandasToJulia # predictions on the training set
 model.predict(JuliaToPandas(test_data)) |> PandasToJulia
 
 # to gauge performance on artificial data vintages
-model.ragged_preds(pub_lags, lag, JuliaToPandas(test_data))
+model.ragged_preds(pub_lags, lag, JuliaToPandas(test_data)) |> PandasToJulia
 
 # save a trained model using dill
 dill.dump(model, py"open"("trained_model.pkl", mode="wb"))
