@@ -53,7 +53,6 @@ The main object and functionality of the library comes from the `LSTM` object. G
 
 ```julia
 using NowcastLSTM
-pd = pyimport("pandas")
 dill = pyimport("dill")
 LSTM = pyimport("nowcast_lstm.LSTM").LSTM
 
@@ -87,7 +86,7 @@ model.ragged_preds(pub_lags, lag, JuliaToPandas(test_data)) |> PandasToJulia
 dill.dump(model, py"open"("trained_model.pkl", mode="wb"))
 
 # load a previously trained model using dill
-trained_model = dill.load(open("trained_model.pkl", "rb", -1))
+trained_model = dill.load(py"open"("trained_model.pkl", "rb", -1))
 
 ```
 
