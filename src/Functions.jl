@@ -6,6 +6,7 @@ export LSTM
 export train
 export save_lstm
 export load_lstm
+export predict
 export ragged_preds
 export gen_news
 
