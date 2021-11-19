@@ -53,45 +53,34 @@ The main object and functionality of the library comes from the `LSTM` object. G
 
 ```julia
 using NowcastLSTM
-dill = pyimport("dill")
-LSTM = pyimport("nowcast_lstm.LSTM").LSTM
 
-# note, any arguments which take Python objects or functions, like criterion, fill_ragged_edges, etc.
-# just import the required Python library and pass, like so
-np = pyimport("numpy")
-LSTM(..., fill_ragged_edges=np.nanmean)
-torch = pyimport("torch")
-LSTM(..., optimizer=torch.optim.Adam)
-LSTM(..., criterion=torch.nn.MSELoss())
+# note, any arguments which take Python objects or functions, like criterion, fill_ragged_edges, etc., pass like so
+LSTM(..., fill_ragged_edges=pyimport("numpy").nanmean)
+LSTM(..., optimizer=pyimport("torch").optim.Adam)
 
-model = LSTM(JuliaToPandas(data), "target_col_name", n_timesteps=12) # default parameters with 12 timestep history
+model = LSTM(data=data, target_variable="target_col_name", n_timesteps=12) # default parameters with 12 timestep history
 
-model.X # array of the transformed training dataset
-model.y # array of the target values
+model = train(model)
 
-model.mv_lstm # list of trained PyTorch network(s)
-model.train_loss # list of training losses for the network(s)
-
-model.train()
-model.predict(model.data) |> PandasToJulia # predictions on the training set
+train_predictions = predict(model, data) # predictions on the training set
 
 # predicting on a testset, which is the same dataframe as the training data + newer data
 # this will give predictions for all dates, but only predictions after the training data ends should be considered for testing
-model.predict(JuliaToPandas(test_data)) |> PandasToJulia
+test_predictions = predict(model, test_data) # predictions on the training set
 
 # to gauge performance on artificial data vintages
-model.ragged_preds(pub_lags, lag, JuliaToPandas(test_data)) |> PandasToJulia
+ragged_predictions = ragged_preds(model, pub_lags, lag, test_data)
 
-# save a trained model using dill
-dill.dump(model, py"open"("trained_model.pkl", mode="wb"))
+# save a trained model
+save_lstm(model, "trained_model.pkl")
 
-# load a previously trained model using dill
-trained_model = dill.load(py"open"("trained_model.pkl", "rb", -1))
+# load a previously trained model
+trained_model = load_lstm("trained_model.pkl")
 
 ```
 
 ## LSTM parameters
-- `data`: `pandas DataFrame` of the data to train the model on. Pass `JuliaToPandas(julia_df)`. Should contain a target column. Any non-numeric columns will be dropped. It should be in the most frequent period of the data. E.g. if I have three monthly variables, two quarterly variables, and a quarterly series, the rows of the dataframe should be months, with the quarterly values appearing every three months (whether Q1 = Jan 1 or Mar 1 depends on the series, but generally the quarterly value should come at the end of the quarter, i.e. Mar 1), with NAs or 0s in between. The same logic applies for yearly variables.
+- `data`: `DataFrame` of the data to train the model on. Pass `JuliaToPandas(julia_df)`. Should contain a target column. Any non-numeric columns will be dropped. It should be in the most frequent period of the data. E.g. if I have three monthly variables, two quarterly variables, and a quarterly series, the rows of the dataframe should be months, with the quarterly values appearing every three months (whether Q1 = Jan 1 or Mar 1 depends on the series, but generally the quarterly value should come at the end of the quarter, i.e. Mar 1), with NAs or 0s in between. The same logic applies for yearly variables.
 - `target_variable`: a `string`, the name of the target column in the dataframe.
 - `n_timesteps`: an `int`, corresponding to the "memory" of the network, i.e. the target value depends on the x past values of the independent variables. For example, if the data is monthly, `n_timesteps=12` means that the estimated target value is based on the previous years' worth of data, 24 is the last two years', etc. This is a hyper parameter that can be evaluated.
 - `fill_na_func`: a function used to replace missing values. Should take a column as a parameter and return a scalar, e.g. `np.nanmean` or `np.nanmedian`.
@@ -108,14 +97,10 @@ trained_model = dill.load(py"open"("trained_model.pkl", "rb", -1))
 - `optimizer_parameters`: `dictionary`. Parameters for a particular optimizer, including learning rate. Information [here](https://pytorch.org/docs/stable/optim.html). For instance, to change learning rate (default 1e-2), pass `Dict("lr" => 1e-2)`, or weight_decay for L2 regularization, pass `Dict("lr" => 1e-2, "weight_decay" => 1e-3)`. Learning rate discussed [here](https://machinelearningmastery.com/understand-the-dynamics-of-learning-rate-on-deep-learning-neural-networks/).
 
 ## LSTM outputs
-Assuming a model has been instantiated and trained with `model = LSTM(...)`:
+Assuming a model has been instantiated and trained with `model = LSTM(...); model = train(model)`, the following functions are available, run `?function` on any of them to find out more about them and their parameters. Other information, like training loss, is available in the trained `model` object, accessed via `.`, e.g. `model.train_loss`:
 
-- `model.train()`: trains the network. Set `quiet=True` to suppress printing of losses per epoch during training.
-- `model.X`: transformed data in the format the model was/will actually be trained on. A `numpy array` of dimensions `n observations x n timesteps x n features`.
-- `model.y`: one-dimensional list target values the model was/will be trained on.
-- `model.predict(model.data)`: given a dataframe with the same columns the model was trained on, returns a dataframe with date, actuals, and predictions, pass `model.data` for performance on the training set.
-- `model.predict(new_data)`: generate dataframe of predictions on a new dataset. Generally should be the same dataframe as the training set, plus additional dates/datapoints.
-- `model.mv_lstm`: a `list` of length `n_models` containing the PyTorch networks. 
-- `model.train_loss`: a `list` of length `n_models` containing the training losses of each of the trained networks.
-- `model.ragged_preds(pub_lags, lag, new_data, start_date, end_date)`: adds artificial missing data then returns a dataframe with date, actuals, and predictions. This is especially useful as a testing mechanism, to generate datasets to see how a trained model would have performed at different synthetic vintages or periods of time in the past. `pub_lags` should be a list of `ints` (in the same order as the columns of the original data) of length `n_features` (i.e. excluding the target variable) dictating the normal publication lag of each of the variables. `lag` is an int of how many periods back we want to simulate being, interpretable as last period relative to target period. E.g. if we are nowcasting June, `lag = -1` will simulate being in May, where May data is published for variables with a publication lag of 0. It will fill with missings values that wouldn't have been available yet according to the publication lag of the variable + the `lag` parameter. It will fill missings with the same method specified in the `fill_ragged_edges_func` parameter in model instantiation.
-- `model.gen_news(target_period, old_data, new_data)`: Generates news between one data release to another, adding an element of causal inference to the network. Works by holding out new data column by column, recording differences between this prediction and the prediction on full data, and registering this difference as the new data's contribution to the prediction. Contributions are then scaled to equal the actual observed difference in prediction in the aggregate between the old dataset and the new dataset.
+- `predict`: to generate predictions on new data
+- `save_lstm`: to save a trained model to disk
+- `load_lstm`: to load a saved model from disk
+- `ragged_preds(model, pub_lags, lag, new_data, start_date, end_date)`: adds artificial missing data then returns a dataframe with date, actuals, and predictions. This is especially useful as a testing mechanism, to generate datasets to see how a trained model would have performed at different synthetic vintages or periods of time in the past. `pub_lags` should be a list of ints (in the same order as the columns of the original data) of length n\_features (i.e. excluding the target variable) dictating the normal publication lag of each of the variables. `lag` is an int of how many periods back we want to simulate being, interpretable as last period relative to target period. E.g. if we are nowcasting June, `lag = -1` will simulate being in May, where May data is published for variables with a publication lag of 0. It will fill with missings values that wouldn't have been available yet according to the publication lag of the variable + the lag parameter. It will fill missings with the same method specified in the `fill_ragged_edges_func` parameter in model instantiation.
+- `gen_news(model, target_period, old_data, new_data)`: Generates news between one data release to another, adding an element of causal inference to the network. Works by holding out new data column by column, recording differences between this prediction and the prediction on full data, and registering this difference as the new data's contribution to the prediction. Contributions are then scaled to equal the actual observed difference in prediction in the aggregate between the old dataset and the new dataset.
