@@ -112,7 +112,7 @@ end
 
 "get predictions from a trained model. pass predict(model, data; only\\_actuals\\_obs = true) to only get predictions where there is an actual value"
 function predict(model::PyObject, data::DataFrame; only_actuals_obs::Bool = false)::DataFrame
-    model.predict(JuliaToPandas(data), only_actuals_obs) |> PandasToJulia
+    model.predict(JuliaToPandas(data), only_actuals_obs)
 end
 
 "save a trained LSTM model to disk. pass save_lstm(model, path_to_save), filename must end in .pkl, e.g. '/Users/trained_model.pkl'"
