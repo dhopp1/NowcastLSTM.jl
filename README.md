@@ -1,5 +1,5 @@
 # NowcastLSTM.jl
-Julia wrapper for [nowcast_lstm](https://github.com/dhopp1/nowcast_lstm) Python library. [MATLAB](https://github.com/dhopp1/nowcast_lstm_matlab) and [R](https://github.com/dhopp1/nowcastLSTM) wrappers also exist. Long short-term memory neural networks for economic nowcasting. More background in [this](https://unctad.org/webflyer/economic-nowcasting-long-short-term-memory-artificial-neural-networks-lstm) UNCTAD research paper.
+Julia wrapper for [nowcast_lstm](https://github.com/dhopp1/nowcast_lstm) Python library. [MATLAB](https://github.com/dhopp1/nowcast_lstm_matlab) and [R](https://github.com/dhopp1/nowcastLSTM) wrappers also exist. Long short-term memory neural networks for economic nowcasting. More background in [this](https://www.researchgate.net/publication/363509881_Economic_Nowcasting_with_Long_Short-Term_Memory_Artificial_Neural_Networks_LSTM) paper in the Journal of Official Statistics.
 
 # Installation and set up
 **Installing the library**
